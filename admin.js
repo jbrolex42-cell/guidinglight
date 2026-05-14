@@ -1,14 +1,15 @@
-// admin.js — Firebase write logic for gallery and news
-// Add to admin.html:  <script type="module" src="admin.js"></script>
+// admin.js — Cloudinary image upload + Firestore metadata
+// <script type="module" src="admin.js"></script> in admin.html
 
-import { db, storage } from './firebase.js';
+import { db } from './firebase.js';
 import {
   collection, addDoc, deleteDoc, doc,
   getDocs, orderBy, query, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import {
-  ref, uploadBytesResumable, getDownloadURL, deleteObject
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const CLOUDINARY_CLOUD  = 'dibihyq55';
+const CLOUDINARY_PRESET = 'guiding_light_uploads';
+const CLOUDINARY_URL    = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`;
 
 // ── RENDER HELPERS ────────────────────────────────────────────────────────────
 
@@ -16,10 +17,10 @@ function renderGalleryCard(data) {
   const grid = document.getElementById('galleryGrid');
   if (!grid) return;
   const item = document.createElement('div');
-  item.className = 'gal-item';
-  item.dataset.cat         = data.category;
-  item.dataset.docId       = data.id;
-  item.dataset.storagePath = data.storagePath || '';
+  item.className        = 'gal-item';
+  item.dataset.cat      = data.category;
+  item.dataset.docId    = data.id;
+  item.dataset.publicId = data.publicId || '';
   item.setAttribute('onclick', 'openLightbox(this)');
   item.innerHTML =
     `<img src="${data.imageUrl}" alt="${data.caption}">` +
@@ -33,9 +34,9 @@ function renderNewsCard(data) {
   const grid = document.getElementById('newsGrid');
   if (!grid) return;
   const card = document.createElement('div');
-  card.className = 'news-card';
-  card.style.cssText = 'animation:slideUp 0.35s ease; position:relative;';
-  card.dataset.docId = data.id;
+  card.className        = 'news-card';
+  card.style.cssText    = 'animation:slideUp 0.35s ease; position:relative;';
+  card.dataset.docId    = data.id;
   card.innerHTML =
     `<div class="news-meta">
       <span class="news-tag ${data.tagClass}">${data.tagLabel}</span>
@@ -51,17 +52,23 @@ function renderNewsCard(data) {
   grid.prepend(card);
 }
 
-// ── LOAD EXISTING DATA ON ADMIN PAGE ─────────────────────────────────────────
+// ── LOAD EXISTING DATA ────────────────────────────────────────────────────────
 
 async function loadAdminData() {
   try {
     const galSnap = await getDocs(query(collection(db, 'gallery'), orderBy('createdAt', 'desc')));
-    galSnap.forEach(d => renderGalleryCard({ id: d.id, ...d.data() }));
+    if (!galSnap.empty) {
+      document.getElementById('galleryGrid').innerHTML = '';
+      galSnap.forEach(d => renderGalleryCard({ id: d.id, ...d.data() }));
+    }
   } catch(e) { console.error('Gallery load failed:', e); }
 
   try {
     const newsSnap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
-    newsSnap.forEach(d => renderNewsCard({ id: d.id, ...d.data() }));
+    if (!newsSnap.empty) {
+      document.getElementById('newsGrid').innerHTML = '';
+      newsSnap.forEach(d => renderNewsCard({ id: d.id, ...d.data() }));
+    }
   } catch(e) { console.error('News load failed:', e); }
 }
 
@@ -71,45 +78,50 @@ window.addPhotos = async function () {
   if (!window.pendingPhotos || !pendingPhotos.length) {
     alert('Please select at least one photo.'); return;
   }
-  const caption   = document.getElementById('photoCaption').value.trim() || 'Gallery Photo';
-  const cat       = document.getElementById('photoCategory').value;
-  const catLabels = { events:'Events', mentorship:'Mentorship', legal:'Legal Aid', community:'Community' };
-  const submitBtn = document.querySelector('#addPhotoPanel .add-submit');
+  const caption    = document.getElementById('photoCaption').value.trim() || 'Gallery Photo';
+  const cat        = document.getElementById('photoCategory').value;
+  const catLabels  = { events:'Events', mentorship:'Mentorship', legal:'Legal Aid', community:'Community' };
+  const submitBtn  = document.querySelector('#addPhotoPanel .add-submit');
 
   submitBtn.textContent = 'Uploading…';
-  submitBtn.disabled = true;
+  submitBtn.disabled    = true;
 
   try {
     for (const p of pendingPhotos) {
-      const fileName   = `gallery/${Date.now()}_${p.file.name}`;
-      const storageRef = ref(storage, fileName);
-      const uploadTask = uploadBytesResumable(storageRef, p.file);
+      // 1. Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file',         p.file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      formData.append('folder',        'guiding-light/gallery');
 
-      const downloadURL = await new Promise((resolve, reject) => {
-        uploadTask.on('state_changed', null, reject, async () => {
-          resolve(await getDownloadURL(uploadTask.snapshot.ref));
-        });
-      });
+      const res  = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`Cloudinary error: ${res.status} ${res.statusText}`);
+      const json = await res.json();
 
+      const imageUrl  = json.secure_url;
+      const publicId  = json.public_id;
+
+      // 2. Save metadata to Firestore
       const docRef = await addDoc(collection(db, 'gallery'), {
         caption,
         category:      cat,
         categoryLabel: catLabels[cat],
-        imageUrl:      downloadURL,
-        storagePath:   fileName,
+        imageUrl,
+        publicId,
         createdAt:     serverTimestamp()
       });
 
+      // 3. Show in admin view immediately
       renderGalleryCard({
         id: docRef.id, caption, category: cat,
-        categoryLabel: catLabels[cat], imageUrl: downloadURL, storagePath: fileName
+        categoryLabel: catLabels[cat], imageUrl, publicId
       });
     }
 
     window.pendingPhotos = [];
     document.getElementById('photoPreviews').innerHTML = '';
-    document.getElementById('photoCaption').value  = '';
-    document.getElementById('photoFileInput').value = '';
+    document.getElementById('photoCaption').value      = '';
+    document.getElementById('photoFileInput').value    = '';
     document.getElementById('addPhotoPanel').classList.remove('open');
     submitBtn.textContent = '✅ Photos Added!';
     setTimeout(() => { submitBtn.textContent = 'Add to Gallery'; submitBtn.disabled = false; }, 2000);
@@ -118,7 +130,7 @@ window.addPhotos = async function () {
     console.error('Upload failed:', err);
     alert('Upload failed: ' + err.message);
     submitBtn.textContent = 'Add to Gallery';
-    submitBtn.disabled = false;
+    submitBtn.disabled    = false;
   }
 };
 
@@ -126,13 +138,14 @@ window.addPhotos = async function () {
 
 window.deleteGalleryItem = async function (e, btn) {
   e.stopPropagation();
-  const item        = btn.closest('.gal-item');
-  const docId       = item?.dataset.docId;
-  const storagePath = item?.dataset.storagePath;
+  const item     = btn.closest('.gal-item');
+  const docId    = item?.dataset.docId;
   if (!item || !confirm('Remove this photo permanently?')) return;
   try {
-    if (docId)       await deleteDoc(doc(db, 'gallery', docId));
-    if (storagePath) await deleteObject(ref(storage, storagePath));
+    if (docId) await deleteDoc(doc(db, 'gallery', docId));
+    // Note: Cloudinary deletion from browser requires a signed request (backend).
+    // The image URL will become a dead link — to fully delete from Cloudinary,
+    // do it manually in the Cloudinary Media Library.
     item.remove();
   } catch (err) {
     console.error('Delete failed:', err);
@@ -158,24 +171,24 @@ window.addNews = async function () {
   if (!headline) { headlineEl.style.borderColor = 'var(--red)'; headlineEl.focus(); return; }
   headlineEl.style.borderColor = '';
   if (!content)  { contentEl.style.borderColor  = 'var(--red)'; contentEl.focus();  return; }
-  contentEl.style.borderColor = '';
+  contentEl.style.borderColor  = '';
 
-  const tagClass = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
-  const tagLabel = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
+  const tagClass    = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
+  const tagLabel    = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
   const displayDate = dateVal
     ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
     : new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
 
   submitBtn.textContent = 'Publishing…';
-  submitBtn.disabled = true;
+  submitBtn.disabled    = true;
 
   try {
     const docRef = await addDoc(collection(db, 'news'), {
       headline, content, category: cat,
-      tagClass: tagClass[cat] || 'tag-event',
-      tagLabel: tagLabel[cat] || 'News',
+      tagClass:     tagClass[cat] || 'tag-event',
+      tagLabel:     tagLabel[cat] || 'News',
       displayDate,
-      createdAt: serverTimestamp()
+      createdAt:    serverTimestamp()
     });
 
     renderNewsCard({
@@ -194,7 +207,7 @@ window.addNews = async function () {
     console.error('Publish failed:', err);
     alert('Publish failed: ' + err.message);
     submitBtn.textContent = 'Publish News';
-    submitBtn.disabled = false;
+    submitBtn.disabled    = false;
   }
 };
 
