@@ -1925,7 +1925,7 @@ document.getElementById('navToggle').addEventListener('click', () => {
 // Close nav on link click
 
 // ── GALLERY ──────────────────────────────────────────────────────────────
-let pendingPhotos = [];
+window.pendingPhotos = [];
 
 function filterGallery(cat, btn) {
   document.querySelectorAll('.gal-filter').forEach(b => b.classList.remove('active'));
@@ -1972,7 +1972,7 @@ function handleFiles(files) {
   Array.from(files).forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      pendingPhotos.push({ src: e.target.result, file });
+      window.pendingPhotos.push({ src: e.target.result, file });
       renderPreviews();
     };
     reader.readAsDataURL(file);
@@ -1982,7 +1982,7 @@ function handleFiles(files) {
 function renderPreviews() {
   const container = document.getElementById('photoPreviews');
   container.innerHTML = '';
-  pendingPhotos.forEach((p, i) => {
+  window.pendingPhotos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-preview-item';
     div.innerHTML = '<img src="' + p.src + '" alt="preview"><button class="preview-remove" onclick="removePending(' + i + ')">×</button>';
@@ -1990,15 +1990,15 @@ function renderPreviews() {
   });
 }
 
-function removePending(i) { pendingPhotos.splice(i,1); renderPreviews(); }
+function removePending(i) { window.pendingPhotos.splice(i,1); renderPreviews(); }
 
-function addPhotos() {
-  if (!pendingPhotos.length) { alert('Please select at least one photo.'); return; }
+function addPhotos_old_disabled() {
+  if (!window.pendingPhotos.length) { alert('Please select at least one photo.'); return; }
   const caption = document.getElementById('photoCaption').value || 'Gallery Photo';
   const cat = document.getElementById('photoCategory').value;
   const catLabels = { events:'Events', mentorship:'Mentorship', legal:'Legal Aid', community:'Community' };
   const grid = document.getElementById('galleryGrid');
-  pendingPhotos.forEach(p => {
+  window.pendingPhotos.forEach(p => {
     const item = document.createElement('div');
     item.className = 'gal-item'; item.dataset.cat = cat;
     item.setAttribute('onclick','openLightbox(this)');
@@ -2007,7 +2007,7 @@ function addPhotos() {
       '<div class="gal-overlay"><span class="gal-caption">' + caption + '</span></div>';
     grid.prepend(item);
   });
-  pendingPhotos = [];
+  window.pendingPhotos = [];
   document.getElementById('photoPreviews').innerHTML = '';
   document.getElementById('photoCaption').value = '';
   document.getElementById('photoFileInput').value = '';
