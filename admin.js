@@ -1,15 +1,9 @@
-// admin.js — Cloudinary image upload + Firestore metadata
+// admin.js — Supabase write logic for gallery and news
 // <script type="module" src="admin.js"></script> in admin.html
 
-import { db } from './firebase.js';
-import {
-  collection, addDoc, deleteDoc, doc,
-  getDocs, orderBy, query, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { supabase } from './supabase.js';
 
-const CLOUDINARY_CLOUD  = 'dibihyq55';
-const CLOUDINARY_PRESET = 'guiding_light_uploads';
-const CLOUDINARY_URL    = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`;
+const BUCKET = 'gallery';
 
 // ── RENDER HELPERS ────────────────────────────────────────────────────────────
 
@@ -17,14 +11,13 @@ function renderGalleryCard(data) {
   const grid = document.getElementById('galleryGrid');
   if (!grid) return;
   const item = document.createElement('div');
-  item.className        = 'gal-item';
-  item.dataset.cat      = data.category;
-  item.dataset.docId    = data.id;
-  item.dataset.publicId = data.publicId || '';
+  item.className     = 'gal-item';
+  item.dataset.cat   = data.category;
+  item.dataset.docId = data.id;
   item.setAttribute('onclick', 'openLightbox(this)');
   item.innerHTML =
-    `<img src="${data.imageUrl}" alt="${data.caption}">` +
-    `<span class="gal-cat-badge">${data.categoryLabel}</span>` +
+    `<img src="${data.image_url}" alt="${data.caption}" loading="lazy">` +
+    `<span class="gal-cat-badge">${data.category_label}</span>` +
     `<div class="gal-overlay"><span class="gal-caption">${data.caption}</span></div>` +
     `<button class="gal-delete-btn" onclick="deleteGalleryItem(event,this)" title="Delete photo">×</button>`;
   grid.prepend(item);
@@ -34,13 +27,13 @@ function renderNewsCard(data) {
   const grid = document.getElementById('newsGrid');
   if (!grid) return;
   const card = document.createElement('div');
-  card.className        = 'news-card';
-  card.style.cssText    = 'animation:slideUp 0.35s ease; position:relative;';
-  card.dataset.docId    = data.id;
+  card.className     = 'news-card';
+  card.style.cssText = 'animation:slideUp 0.35s ease; position:relative;';
+  card.dataset.docId = data.id;
   card.innerHTML =
     `<div class="news-meta">
-      <span class="news-tag ${data.tagClass}">${data.tagLabel}</span>
-      <span class="news-date">${data.displayDate}</span>
+      <span class="news-tag ${data.tag_class}">${data.tag_label}</span>
+      <span class="news-date">${data.display_date}</span>
     </div>
     <h4>${data.headline}</h4>
     <p>${data.content}</p>
@@ -55,27 +48,35 @@ function renderNewsCard(data) {
 // ── LOAD EXISTING DATA ────────────────────────────────────────────────────────
 
 async function loadAdminData() {
-  try {
-    const galSnap = await getDocs(query(collection(db, 'gallery'), orderBy('createdAt', 'desc')));
-    if (!galSnap.empty) {
-      document.getElementById('galleryGrid').innerHTML = '';
-      galSnap.forEach(d => renderGalleryCard({ id: d.id, ...d.data() }));
-    }
-  } catch(e) { console.error('Gallery load failed:', e); }
+  // Gallery
+  const { data: galData, error: galErr } = await supabase
+    .from('gallery')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  try {
-    const newsSnap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
-    if (!newsSnap.empty) {
-      document.getElementById('newsGrid').innerHTML = '';
-      newsSnap.forEach(d => renderNewsCard({ id: d.id, ...d.data() }));
-    }
-  } catch(e) { console.error('News load failed:', e); }
+  if (galErr) { console.error('Gallery load failed:', galErr); }
+  else if (galData?.length) {
+    document.getElementById('galleryGrid').innerHTML = '';
+    galData.forEach(row => renderGalleryCard(row));
+  }
+
+  // News
+  const { data: newsData, error: newsErr } = await supabase
+    .from('news')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (newsErr) { console.error('News load failed:', newsErr); }
+  else if (newsData?.length) {
+    document.getElementById('newsGrid').innerHTML = '';
+    newsData.forEach(row => renderNewsCard(row));
+  }
 }
 
 // ── GALLERY UPLOAD ────────────────────────────────────────────────────────────
 
 window.addPhotos = async function () {
-  if (!window.pendingPhotos || !pendingPhotos.length) {
+  if (!window.pendingPhotos?.length) {
     alert('Please select at least one photo.'); return;
   }
   const caption    = document.getElementById('photoCaption').value.trim() || 'Gallery Photo';
@@ -88,34 +89,40 @@ window.addPhotos = async function () {
 
   try {
     for (const p of pendingPhotos) {
-      // 1. Upload to Cloudinary
-      const formData = new FormData();
-      formData.append('file',         p.file);
-      formData.append('upload_preset', CLOUDINARY_PRESET);
-      formData.append('folder',        'guiding-light/gallery');
+      // 1. Upload file to Supabase Storage
+      const ext      = p.file.name.split('.').pop();
+      const filePath = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
-      const res  = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error(`Cloudinary error: ${res.status} ${res.statusText}`);
-      const json = await res.json();
+      const { error: uploadErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(filePath, p.file, { contentType: p.file.type, upsert: false });
 
-      const imageUrl  = json.secure_url;
-      const publicId  = json.public_id;
+      if (uploadErr) throw uploadErr;
 
-      // 2. Save metadata to Firestore
-      const docRef = await addDoc(collection(db, 'gallery'), {
-        caption,
-        category:      cat,
-        categoryLabel: catLabels[cat],
-        imageUrl,
-        publicId,
-        createdAt:     serverTimestamp()
-      });
+      // 2. Get public URL
+      const { data: urlData } = supabase.storage
+        .from(BUCKET)
+        .getPublicUrl(filePath);
 
-      // 3. Show in admin view immediately
-      renderGalleryCard({
-        id: docRef.id, caption, category: cat,
-        categoryLabel: catLabels[cat], imageUrl, publicId
-      });
+      const imageUrl = urlData.publicUrl;
+
+      // 3. Save metadata to Supabase DB
+      const { data: row, error: dbErr } = await supabase
+        .from('gallery')
+        .insert({
+          caption,
+          category:       cat,
+          category_label: catLabels[cat],
+          image_url:      imageUrl,
+          file_path:      filePath
+        })
+        .select()
+        .single();
+
+      if (dbErr) throw dbErr;
+
+      // 4. Show in admin immediately
+      renderGalleryCard(row);
     }
 
     window.pendingPhotos = [];
@@ -128,7 +135,7 @@ window.addPhotos = async function () {
 
   } catch (err) {
     console.error('Upload failed:', err);
-    alert('Upload failed: ' + err.message);
+    alert('Upload failed: ' + (err.message || JSON.stringify(err)));
     submitBtn.textContent = 'Add to Gallery';
     submitBtn.disabled    = false;
   }
@@ -138,14 +145,25 @@ window.addPhotos = async function () {
 
 window.deleteGalleryItem = async function (e, btn) {
   e.stopPropagation();
-  const item     = btn.closest('.gal-item');
-  const docId    = item?.dataset.docId;
+  const item  = btn.closest('.gal-item');
+  const docId = item?.dataset.docId;
   if (!item || !confirm('Remove this photo permanently?')) return;
+
   try {
-    if (docId) await deleteDoc(doc(db, 'gallery', docId));
-    // Note: Cloudinary deletion from browser requires a signed request (backend).
-    // The image URL will become a dead link — to fully delete from Cloudinary,
-    // do it manually in the Cloudinary Media Library.
+    // Get file_path before deleting row
+    const { data: row } = await supabase
+      .from('gallery').select('file_path').eq('id', docId).single();
+
+    // Delete from DB
+    const { error: dbErr } = await supabase
+      .from('gallery').delete().eq('id', docId);
+    if (dbErr) throw dbErr;
+
+    // Delete from Storage
+    if (row?.file_path) {
+      await supabase.storage.from(BUCKET).remove([row.file_path]);
+    }
+
     item.remove();
   } catch (err) {
     console.error('Delete failed:', err);
@@ -173,8 +191,8 @@ window.addNews = async function () {
   if (!content)  { contentEl.style.borderColor  = 'var(--red)'; contentEl.focus();  return; }
   contentEl.style.borderColor  = '';
 
-  const tagClass    = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
-  const tagLabel    = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
+  const tagClassMap = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
+  const tagLabelMap = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
   const displayDate = dateVal
     ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
     : new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
@@ -183,18 +201,20 @@ window.addNews = async function () {
   submitBtn.disabled    = true;
 
   try {
-    const docRef = await addDoc(collection(db, 'news'), {
-      headline, content, category: cat,
-      tagClass:     tagClass[cat] || 'tag-event',
-      tagLabel:     tagLabel[cat] || 'News',
-      displayDate,
-      createdAt:    serverTimestamp()
-    });
+    const { data: row, error } = await supabase
+      .from('news')
+      .insert({
+        headline, content, category: cat,
+        tag_class:    tagClassMap[cat] || 'tag-event',
+        tag_label:    tagLabelMap[cat] || 'News',
+        display_date: displayDate
+      })
+      .select()
+      .single();
 
-    renderNewsCard({
-      id: docRef.id, headline, content,
-      tagClass: tagClass[cat], tagLabel: tagLabel[cat], displayDate
-    });
+    if (error) throw error;
+
+    renderNewsCard(row);
 
     headlineEl.value = ''; contentEl.value = '';
     if (dateEl) dateEl.value = '';
@@ -218,7 +238,8 @@ window.deleteNewsCard = async function (btn) {
   const docId = card?.dataset.docId;
   if (!card || !confirm('Delete this news item permanently?')) return;
   try {
-    if (docId) await deleteDoc(doc(db, 'news', docId));
+    const { error } = await supabase.from('news').delete().eq('id', docId);
+    if (error) throw error;
     card.remove();
   } catch (err) {
     console.error('Delete failed:', err);

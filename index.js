@@ -1,75 +1,66 @@
-// index.js — Firebase read logic for the public site
-// Imported by index.html only
+// index.js — Supabase read logic for public site
+// <script type="module" src="index.js"></script> in index.html
 
-import { db } from './firebase.js';
-import {
-  collection, getDocs, orderBy, query
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { supabase } from './supabase.js';
 
-// ── LOAD GALLERY FROM FIRESTORE ───────────────────────────────────────────────
+// ── LOAD GALLERY ──────────────────────────────────────────────────────────────
+
 async function loadGallery() {
   const grid = document.getElementById('galleryGrid');
   if (!grid) return;
 
-  try {
-    const snap = await getDocs(query(collection(db, 'gallery'), orderBy('createdAt', 'desc')));
+  const { data, error } = await supabase
+    .from('gallery')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (snap.empty) return; // keep seeded placeholder items
+  if (error) { console.error('Gallery load failed:', error); return; }
+  if (!data?.length) return; // keep seeded placeholders
 
-    // Clear seeded placeholders once we have real data
-    grid.innerHTML = '';
-
-    snap.forEach(d => {
-      const data = d.data();
-      const item = document.createElement('div');
-      item.className = 'gal-item';
-      item.dataset.cat = data.category;
-      item.setAttribute('onclick', 'openLightbox(this)');
-      item.innerHTML =
-        `<img src="${data.imageUrl}" alt="${data.caption}" loading="lazy">` +
-        `<span class="gal-cat-badge">${data.categoryLabel}</span>` +
-        `<div class="gal-overlay"><span class="gal-caption">${data.caption}</span></div>`;
-      grid.appendChild(item);
-    });
-
-  } catch (err) {
-    console.error('Failed to load gallery:', err);
-  }
+  grid.innerHTML = '';
+  data.forEach(row => {
+    const item = document.createElement('div');
+    item.className = 'gal-item';
+    item.dataset.cat = row.category;
+    item.setAttribute('onclick', 'openLightbox(this)');
+    item.innerHTML =
+      `<img src="${row.image_url}" alt="${row.caption}" loading="lazy">` +
+      `<span class="gal-cat-badge">${row.category_label}</span>` +
+      `<div class="gal-overlay"><span class="gal-caption">${row.caption}</span></div>`;
+    grid.appendChild(item);
+  });
 }
 
-// ── LOAD NEWS FROM FIRESTORE ──────────────────────────────────────────────────
+// ── LOAD NEWS ─────────────────────────────────────────────────────────────────
+
 async function loadNews() {
   const grid = document.getElementById('newsGrid');
   if (!grid) return;
 
-  try {
-    const snap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
+  const { data, error } = await supabase
+    .from('news')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    if (snap.empty) return; // keep seeded cards
+  if (error) { console.error('News load failed:', error); return; }
+  if (!data?.length) return; // keep seeded cards
 
-    // Clear seeded cards once we have real data
-    grid.innerHTML = '';
-
-    snap.forEach(d => {
-      const data = d.data();
-      const card = document.createElement('div');
-      card.className = 'news-card';
-      card.innerHTML =
-        `<div class="news-meta">
-          <span class="news-tag ${data.tagClass}">${data.tagLabel}</span>
-          <span class="news-date">${data.displayDate}</span>
-        </div>
-        <h4>${data.headline}</h4>
-        <p>${data.content}</p>`;
-      grid.appendChild(card);
-    });
-
-  } catch (err) {
-    console.error('Failed to load news:', err);
-  }
+  grid.innerHTML = '';
+  data.forEach(row => {
+    const card = document.createElement('div');
+    card.className = 'news-card';
+    card.innerHTML =
+      `<div class="news-meta">
+        <span class="news-tag ${row.tag_class}">${row.tag_label}</span>
+        <span class="news-date">${row.display_date}</span>
+      </div>
+      <h4>${row.headline}</h4>
+      <p>${row.content}</p>`;
+    grid.appendChild(card);
+  });
 }
 
-// ── RUN ON PAGE LOAD ──────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadGallery();
   loadNews();
