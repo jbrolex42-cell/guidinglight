@@ -2233,14 +2233,9 @@ document.querySelectorAll('.nav-links a').forEach(a => {
 
 </script>
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+import { supabase } from './supabase.js';
 
-// Supabase Credentials Configuration
-const supabaseUrl = "YOUR_SUPABASE_URL"
-const supabaseKey = "YOUR_SUPABASE_ANON_KEY"
-
-const supabase = createClient(supabaseUrl, supabaseKey)
-  window._supabase = supabase // expose for blog, avatar, and other inline scripts
+window._supabase = supabase; // expose for blog, avatar, and other inline scripts
 
 // Load blog posts now that supabase is ready
 if (typeof window._loadBlogPosts === 'function') window._loadBlogPosts();

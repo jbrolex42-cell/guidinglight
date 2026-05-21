@@ -1507,6 +1507,7 @@
 // ── TEAM AVATAR UPLOAD ─────────────────────────────────────────
 function setAvatar(key, input) {
   if (!input.files[0]) return;
+  const file = input.files[0];
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = document.getElementById('avatarImg-' + key);
@@ -1515,7 +1516,7 @@ function setAvatar(key, input) {
     img.classList.add('loaded');
     wrapper.classList.add('has-photo');
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(file);
 }
 
 const profiles = {
@@ -1912,5 +1913,31 @@ document.querySelectorAll('.nav-links a').forEach(a => {
   });
 });
 </script>
+<script type="module">
+import { supabase } from './supabase.js';
+
+// ── LOAD TEAM AVATARS FROM SUPABASE ───────────────────────────
+async function loadTeamAvatars() {
+  try {
+    const { data, error } = await supabase
+      .from('team_profiles')
+      .select('member_key, avatar_url');
+    if (error || !data) return;
+    data.forEach(row => {
+      if (!row.avatar_url) return;
+      const img     = document.getElementById('avatarImg-' + row.member_key);
+      const wrapper = document.getElementById('avatar-'    + row.member_key);
+      if (!img || !wrapper) return;
+      img.src = row.avatar_url;
+      img.classList.add('loaded');
+      wrapper.classList.add('has-photo');
+    });
+  } catch (e) {
+    console.warn('loadTeamAvatars error:', e);
+  }
+}
+loadTeamAvatars();
+</script>
+<script type="module" src="index.js"></script>
 </body>
 </html>

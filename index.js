@@ -29,24 +29,6 @@ async function loadGallery() {
       `<div class="gal-overlay"><span class="gal-caption">${row.caption}</span></div>`;
     grid.appendChild(item);
   });
-
-async function fetchAndDisplayAvatar() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('avatar_url')
-    .eq('id', 'YOUR_USER_ID_HERE') // Ensure this matches the ID of the person
-    .single();
-
-  if (data && data.avatar_url) {
-    const avatarImg = document.getElementById('avatarImg-claire');
-    if (avatarImg) {
-      avatarImg.src = data.avatar_url;
-    }
-  }
-}
-
-// Run this when the page loads
-window.addEventListener('DOMContentLoaded', fetchAndDisplayAvatar);
 }
 
 // ── LOAD NEWS ─────────────────────────────────────────────────────────────────
