@@ -1781,24 +1781,34 @@ function setAvatar(key, input) {
     wrapper.classList.add('has-photo');
   };
   reader.readAsDataURL(file);
-  // Persist to Supabase storage if client is available
-  if (window._supabase) {
-    (async () => {
-      try {
-        const ext = file.name.split('.').pop();
-        const fileName = 'team-' + key + '.' + ext;
-        const { error: upErr } = await window._supabase.storage
-          .from('avatars')
-          .upload(fileName, file, { upsert: true });
-        if (upErr) { console.warn('Team avatar upload:', upErr.message); return; }
-        const { data } = window._supabase.storage.from('avatars').getPublicUrl(fileName);
-        const url = data.publicUrl + '?t=' + Date.now();
-        await window._supabase
-          .from('team_profiles')
-          .upsert({ member_key: key, avatar_url: url }, { onConflict: 'member_key' });
-      } catch (e) { console.warn('Team avatar Supabase error:', e); }
-    })();
+  // Persist to Supabase
+  if (!window._supabase) {
+    alert('ERROR: Supabase not ready. Refresh and try again.');
+    return;
   }
+  (async () => {
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = 'team-' + key + '.' + ext;
+
+      const { error: upErr } = await window._supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+      if (upErr) { alert('Storage upload failed: ' + upErr.message); return; }
+
+      const { data } = window._supabase.storage.from('avatars').getPublicUrl(fileName);
+      const url = data.publicUrl;
+
+      const { error: dbErr } = await window._supabase
+        .from('team_profiles')
+        .upsert({ member_key: key, avatar_url: url }, { onConflict: 'member_key' });
+      if (dbErr) { alert('Database save failed: ' + dbErr.message); return; }
+
+      alert('Avatar saved for ' + key + '!');
+    } catch (e) {
+      alert('Avatar error: ' + e.message);
+    }
+  })();
 }
 
 const profiles = {
