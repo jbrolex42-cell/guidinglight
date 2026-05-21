@@ -764,6 +764,28 @@
   <span style="color:rgba(255,255,255,0.4); font-size:12px;">
     All editing tools are enabled on this page.
   </span>
+  <!-- Admin profile avatar -->
+  <div style="display:flex;align-items:center;gap:8px;">
+    <label for="avatarInput" style="
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(212,160,23,0.12);color:rgba(242,214,117,0.9);
+      border:1px solid rgba(212,160,23,0.3);padding:6px 14px;border-radius:6px;
+      cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;
+      letter-spacing:0.05em;text-transform:uppercase;transition:background 0.2s;
+    " title="Upload admin profile photo">
+      📷 My Photo
+      <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+    </label>
+    <img id="previewAvatar" style="
+      width:32px;height:32px;border-radius:50%;object-fit:cover;
+      border:2px solid rgba(212,160,23,0.4);display:none;
+    " alt="Admin avatar">
+    <button id="deleteAvatar" style="
+      background:rgba(192,57,43,0.15);color:#E87B6B;border:1px solid rgba(192,57,43,0.3);
+      padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+      font-family:'DM Sans',sans-serif;display:none;transition:background 0.2s;
+    " title="Remove profile photo">🗑</button>
+  </div>
   <button onclick="adminLogout()" style="
     background:rgba(192,57,43,0.2); color:#E87B6B; border:1px solid rgba(192,57,43,0.4);
     padding:7px 18px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;
@@ -776,7 +798,6 @@
 <script>
   // ── Admin auth ────────────────────────────────────────────────────────────
   // Change this password to whatever you want.
-  var ADMIN_PW = 'GuidingLight2025!';
   var ADMIN_PW = 'Chris2025';
   function checkAdminPw() {
     var val = document.getElementById('adminPwInput').value;
@@ -1749,6 +1770,8 @@
 // ── TEAM AVATAR UPLOAD ─────────────────────────────────────────
 function setAvatar(key, input) {
   if (!input.files[0]) return;
+  const file = input.files[0];
+  // Show photo immediately (local preview)
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = document.getElementById('avatarImg-' + key);
@@ -1757,7 +1780,25 @@ function setAvatar(key, input) {
     img.classList.add('loaded');
     wrapper.classList.add('has-photo');
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(file);
+  // Persist to Supabase storage if client is available
+  if (window._supabase) {
+    (async () => {
+      try {
+        const ext = file.name.split('.').pop();
+        const fileName = 'team-' + key + '.' + ext;
+        const { error: upErr } = await window._supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { upsert: true });
+        if (upErr) { console.warn('Team avatar upload:', upErr.message); return; }
+        const { data } = window._supabase.storage.from('avatars').getPublicUrl(fileName);
+        const url = data.publicUrl + '?t=' + Date.now();
+        await window._supabase
+          .from('team_profiles')
+          .upsert({ member_key: key, avatar_url: url }, { onConflict: 'member_key' });
+      } catch (e) { console.warn('Team avatar Supabase error:', e); }
+    })();
+  }
 }
 
 const profiles = {
@@ -2002,7 +2043,7 @@ function renderPreviews() {
 
 function removePending(i) { window.pendingPhotos.splice(i,1); renderPreviews(); }
 
-function addPhotos_old_disabled() {
+function addPhotos() {
   if (!window.pendingPhotos.length) { alert('Please select at least one photo.'); return; }
   const caption = document.getElementById('photoCaption').value || 'Gallery Photo';
   const cat = document.getElementById('photoCategory').value;
@@ -2026,48 +2067,7 @@ function addPhotos_old_disabled() {
 }
 
 // ── NEWS ──────────────────────────────────────────────────────────────────
-function addNews() {
-  var headlineEl = document.getElementById('newsHeadline');
-  var catEl      = document.getElementById('newsCategory');
-  var dateEl     = document.getElementById('newsDate');
-  var contentEl  = document.getElementById('newsContent');
-  var gridEl     = document.getElementById('newsGrid');
-  var panelEl    = document.getElementById('addNewsPanel');
-  if (!headlineEl || !catEl || !contentEl || !gridEl) { console.error('News form elements missing'); return; }
-  var headline = headlineEl.value.trim();
-  var cat      = catEl.value;
-  var dateVal  = dateEl ? dateEl.value : '';
-  var content  = contentEl.value.trim();
-  if (!headline) { headlineEl.style.borderColor='var(--red)'; headlineEl.focus(); return; }
-  headlineEl.style.borderColor = '';
-  if (!content)  { contentEl.style.borderColor='var(--red)';  contentEl.focus();  return; }
-  contentEl.style.borderColor = '';
-  var tagClass = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
-  var tagLabel = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
-  var displayDate = dateVal
-    ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-    : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  var card = document.createElement('div');
-  card.className = 'news-card';
-  card.style.animation = 'slideUp 0.35s ease';
-  card.innerHTML =
-    '<div class="news-meta">' +
-      '<span class="news-tag ' + (tagClass[cat]||'tag-event') + '">' + (tagLabel[cat]||'News') + '</span>' +
-      '<span class="news-date">' + displayDate + '</span>' +
-    '</div>' +
-    '<h4>' + headline + '</h4>' +
-    '<p>' + content + '</p>';
-  gridEl.prepend(card);
-  headlineEl.value = ''; contentEl.value = '';
-  if (dateEl) dateEl.value = '';
-  var sEl = document.getElementById('newsSummaryShort'); if (sEl) sEl.value = '';
-  var btn = panelEl ? panelEl.querySelector('.add-submit') : null;
-  if (btn) {
-    var orig = btn.textContent;
-    btn.textContent = '✅ Published!'; btn.disabled = true;
-    setTimeout(function(){ btn.textContent=orig; btn.disabled=false; if(panelEl) panelEl.classList.remove('open'); }, 1800);
-  } else { if (panelEl) panelEl.classList.remove('open'); }
-}
+// addNews() is defined in admin.js and saves to Supabase — do not redefine here.
 
 // ── BLOG ──────────────────────────────────────────────────────────────────
 const blogData = [
@@ -2100,51 +2100,126 @@ function closeBlogModal(e, force) {
   }
 }
 
-function addBlog() {
-  const title = document.getElementById('blogTitle').value.trim();
-  const cat = document.getElementById('blogCategory').value;
-  const author = document.getElementById('blogAuthor').value.trim();
-  const body = document.getElementById('blogBody').value.trim();
+// ── BLOG RENDER HELPER ────────────────────────────────────────────────────
+function renderBlogCard(row) {
+  const idx = blogData.length;
+  blogData.push({
+    title: row.title, cat: row.category, date: row.display_date,
+    readTime: row.read_time, emoji: '✍️', body: row.body,
+    author: row.author, id: row.id, image_url: row.image_url || null
+  });
+  const grid = document.getElementById('blogGrid');
+  const card = document.createElement('div');
+  card.className = 'blog-card';
+  card.dataset.docId = row.id;
+  card.setAttribute('onclick', 'openBlog(' + idx + ')');
+  const thumbInner = row.image_url
+    ? '<img src="' + row.image_url + '" alt="cover" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">'
+    : '✍️';
+  card.innerHTML =
+    '<div class="blog-thumb" style="position:relative;">' + thumbInner + '</div>' +
+    '<div class="blog-body">' +
+      '<div class="blog-meta">' +
+        '<span class="blog-cat">' + row.category + '</span>' +
+        '<span class="blog-date">' + row.display_date + '</span>' +
+        '<span class="blog-read-time">· ' + row.read_time + '</span>' +
+      '</div>' +
+      '<h4>' + row.title + '</h4>' +
+      '<p>' + row.body.substring(0, 160) + (row.body.length > 160 ? '...' : '') + '</p>' +
+      '<span class="blog-read-link">Read article →</span>' +
+    '</div>' +
+    '<button onclick="deleteBlogCard(event,this)" title="Delete" ' +
+      'style="position:absolute;top:8px;right:8px;background:rgba(192,57,43,0.85);' +
+      'color:#fff;border:none;border-radius:50%;width:24px;height:24px;' +
+      'cursor:pointer;font-size:16px;line-height:1;z-index:10;">×</button>';
+  grid.prepend(card);
+}
+
+// ── LOAD BLOG POSTS FROM SUPABASE ─────────────────────────────────────────
+async function loadBlogPosts() {
+  const supabase = window._supabase;
+  if (!supabase) return; // not ready yet; called again after module loads
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { console.error('Blog load failed:', error); return; }
+  if (!data?.length) return; // keep seeded placeholders
+  document.getElementById('blogGrid').innerHTML = '';
+  data.forEach(row => renderBlogCard(row));
+}
+window._loadBlogPosts = loadBlogPosts; // call from module script after init
+
+// ── DELETE BLOG CARD ──────────────────────────────────────────────────────
+async function deleteBlogCard(e, btn) {
+  e.stopPropagation();
+  const card = btn.closest('.blog-card');
+  const docId = card?.dataset.docId;
+  if (!card || !confirm('Delete this article permanently?')) return;
+  const supabase = window._supabase;
+  if (!supabase) { alert('Not connected yet.'); return; }
+  const { error } = await supabase.from('blog_posts').delete().eq('id', docId);
+  if (error) { alert('Delete failed: ' + error.message); return; }
+  // Remove from blogData array too
+  const idx = blogData.findIndex(p => p.id === docId);
+  if (idx > -1) blogData.splice(idx, 1);
+  card.remove();
+}
+window.deleteBlogCard = deleteBlogCard;
+
+async function addBlog() {
+  const supabase = window._supabase;
+  if (!supabase) { alert('Supabase not ready — please wait a moment and try again.'); return; }
+
+  const title    = document.getElementById('blogTitle').value.trim();
+  const cat      = document.getElementById('blogCategory').value;
+  const author   = document.getElementById('blogAuthor').value.trim();
+  const body     = document.getElementById('blogBody').value.trim();
   const imgInput = document.getElementById('blogImageInput');
   if (!title || !body) { alert('Please fill in the title and article body.'); return; }
-  const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+  const date      = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   const wordCount = body.split(/\s+/).length;
-  const readTime = Math.max(1, Math.round(wordCount / 200)) + ' min read';
-  const idx = blogData.length;
-  
-  const processCard = (imgSrc) => {
-    blogData.push({ title, cat, date, readTime, emoji: '✍️', body, author });
-    const grid = document.getElementById('blogGrid');
-    const card = document.createElement('div');
-    card.className = 'blog-card';
-    card.setAttribute('onclick', 'openBlog(' + idx + ')');
-    const thumbInner = imgSrc
-      ? '<img src="' + imgSrc + '" alt="cover" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">'
-      : '✍️';
-    card.innerHTML = '<div class="blog-thumb" style="position:relative;">' + thumbInner + '</div>' +
-      '<div class="blog-body">' +
-        '<div class="blog-meta">' +
-          '<span class="blog-cat">' + cat + '</span>' +
-          '<span class="blog-date">' + date + '</span>' +
-          '<span class="blog-read-time">· ' + readTime + '</span>' +
-        '</div>' +
-        '<h4>' + title + '</h4>' +
-        '<p>' + body.substring(0, 160) + (body.length > 160 ? '...' : '') + '</p>' +
-        '<span class="blog-read-link">Read article →</span>' +
-      '</div>';
-    grid.prepend(card);
-    ['blogTitle','blogAuthor','blogBody'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('blogImageInput').value = '';
-    document.getElementById('addBlogPanel').classList.remove('open');
-    alert('✅ Article published!');
+  const readTime  = Math.max(1, Math.round(wordCount / 200)) + ' min read';
+
+  const submitBtn = document.querySelector('#addBlogPanel .add-submit');
+  if (submitBtn) { submitBtn.textContent = 'Publishing…'; submitBtn.disabled = true; }
+
+  const doInsert = async (imageUrl) => {
+    try {
+      const { data: row, error } = await supabase
+        .from('blog_posts')
+        .insert({
+          title, category: cat, author, body,
+          display_date: date, read_time: readTime,
+          image_url: imageUrl || null
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      renderBlogCard(row);
+      ['blogTitle','blogAuthor','blogBody'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('blogImageInput').value = '';
+      document.getElementById('addBlogPanel').classList.remove('open');
+      if (submitBtn) { submitBtn.textContent = '✅ Published!'; setTimeout(() => { submitBtn.textContent = 'Publish Article'; submitBtn.disabled = false; }, 2000); }
+    } catch(err) {
+      console.error('Blog publish failed:', err);
+      alert('Publish failed: ' + (err.message || JSON.stringify(err)));
+      if (submitBtn) { submitBtn.textContent = 'Publish Article'; submitBtn.disabled = false; }
+    }
   };
 
+  // If there's a cover image, upload it to storage first
   if (imgInput.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => processCard(e.target.result);
-    reader.readAsDataURL(imgInput.files[0]);
+    const file    = imgInput.files[0];
+    const ext     = file.name.split('.').pop();
+    const path    = `blog_${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from('gallery').upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) { alert('Image upload failed: ' + upErr.message); if (submitBtn) { submitBtn.textContent = 'Publish Article'; submitBtn.disabled = false; } return; }
+    const { data: urlData } = supabase.storage.from('gallery').getPublicUrl(path);
+    await doInsert(urlData.publicUrl);
   } else {
-    processCard(null);
+    await doInsert(null);
   }
 }
 
@@ -2153,6 +2228,174 @@ document.querySelectorAll('.nav-links a').forEach(a => {
     document.getElementById('navLinks').classList.remove('open');
   });
 });
+
+
+
+</script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+// Supabase Credentials Configuration
+const supabaseUrl = "YOUR_SUPABASE_URL"
+const supabaseKey = "YOUR_SUPABASE_ANON_KEY"
+
+const supabase = createClient(supabaseUrl, supabaseKey)
+  window._supabase = supabase // expose for blog, avatar, and other inline scripts
+
+// Load blog posts now that supabase is ready
+if (typeof window._loadBlogPosts === 'function') window._loadBlogPosts();
+
+// ── LOAD TEAM MEMBER AVATARS ON PAGE LOAD ─────────────────────────────────
+async function loadTeamAvatars() {
+  try {
+    const { data, error } = await supabase
+      .from('team_profiles')
+      .select('member_key, avatar_url')
+
+    if (error || !data) return
+
+    data.forEach(row => {
+      if (!row.avatar_url) return
+      const img     = document.getElementById('avatarImg-' + row.member_key)
+      const wrapper = document.getElementById('avatar-'    + row.member_key)
+      if (!img || !wrapper) return
+      img.src = row.avatar_url
+      img.classList.add('loaded')
+      wrapper.classList.add('has-photo')
+    })
+  } catch (e) {
+    console.warn('loadTeamAvatars error:', e)
+  }
+}
+loadTeamAvatars()
+
+const avatarInput = document.getElementById("avatarInput")
+const previewAvatar = document.getElementById("previewAvatar")
+const deleteBtn = document.getElementById("deleteAvatar")
+
+// Current logged-in authentication user context
+const {
+  data: { user }
+} = await supabase.auth.getUser()
+
+// LOAD CURRENT AVATAR
+async function loadAvatar() {
+  // If Supabase auth is not configured, fall back to loading by fixed admin key
+  const profileId = user ? user.id : null
+  const query = profileId
+    ? supabase.from("profiles").select("avatar_url").eq("id", profileId).single()
+    : supabase.from("team_profiles").select("avatar_url").eq("member_key", "admin").single()
+
+  const { data, error } = await query
+
+  if (data?.avatar_url) {
+    previewAvatar.src = data.avatar_url
+    previewAvatar.style.display = "block"
+    const delBtn = document.getElementById("deleteAvatar")
+    if (delBtn) delBtn.style.display = "inline-flex"
+  } else {
+    previewAvatar.src = ""
+  }
+}
+
+// Automatically load avatar on initialization
+loadAvatar()
+
+// UPLOAD AVATAR WORKFLOW
+avatarInput.addEventListener("change", async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${user.id}.${fileExt}`
+
+  // Upload asset image into your Supabase "avatars" Bucket storage
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(fileName, file, {
+      upsert: true
+    })
+
+  if (uploadError) {
+    alert("Storage Error: " + uploadError.message)
+    return
+  }
+
+  // Generate public path URL access link
+  const { data } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(fileName)
+
+  // Cache busting query parameter appended to reflect updates instantly
+  const avatarUrl = data.publicUrl + `?t=${Date.now()}`
+
+  // Sync and save file reference inside database rows 
+  const { error: dbError } = await supabase
+    .from("profiles")
+    .update({
+      avatar_url: avatarUrl
+    })
+    .eq("id", user.id)
+
+  if (dbError) {
+    alert("Database Error: " + dbError.message)
+    return
+  }
+
+  previewAvatar.src = avatarUrl
+  const delBtn = document.getElementById("deleteAvatar")
+  if (delBtn) delBtn.style.display = "inline-flex"
+  alert("✅ Avatar updated successfully!")
+})
+
+// DELETE AVATAR WORKFLOW
+deleteBtn.addEventListener("click", async () => {
+  if (!confirm("Are you sure you want to delete your profile avatar?")) return
+
+  // Query current avatar URL configuration from profile database mapping
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.avatar_url) {
+    alert("No avatar exists to delete.")
+    return
+  }
+
+  // Parse out and extract the storage file string clean path 
+  const urlParts = profile.avatar_url.split("/")
+  const fileName = urlParts[urlParts.length - 1].split("?")[0]
+
+  // Remove targeted asset file from cloud storage bucket 
+  const { error: storageRemoveError } = await supabase.storage
+    .from("avatars")
+    .remove([fileName])
+
+  if (storageRemoveError) {
+    alert("Failed to delete file from storage: " + storageRemoveError.message)
+  }
+
+  // Clear URL data from user profile row reference parameters
+  const { error: dbUpdateError } = await supabase
+    .from("profiles")
+    .update({
+      avatar_url: null
+    })
+    .eq("id", user.id)
+
+  if (dbUpdateError) {
+    alert("Database Error: " + dbUpdateError.message)
+    return
+  }
+
+  previewAvatar.src = ""
+  previewAvatar.style.display = "none"
+  const delBtn2 = document.getElementById("deleteAvatar")
+  if (delBtn2) delBtn2.style.display = "none"
+  alert("🗑️ Avatar has been removed.")
+})
 </script>
 <script type="module" src="supabase.js"></script>
 <script type="module" src="admin.js"></script>

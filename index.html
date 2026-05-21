@@ -37,7 +37,7 @@
   /* ── NAV ── */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-    background: rgb(127, 211, 211, 1 );
+    background: rgba(13,34,64,0.92);
     backdrop-filter: blur(8px);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 5%;
@@ -660,6 +660,23 @@
   /* When photo is loaded, initials hide */
   .team-avatar.has-photo .avatar-initials { display:none; }
 
+
+  /* ── OBJECTIVES GRID ── */
+  .objectives-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 0; }
+  @media(max-width:900px){ .objectives-grid{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:600px){ .objectives-grid{ grid-template-columns:1fr; } }
+  .obj-card {
+    background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px;
+    border-top: 2px solid var(--gold);
+  }
+  .obj-card h4 { color: var(--gold-light); margin-bottom: 12px; font-size: 16px; }
+  .obj-card p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300; }
+  .color-white { color: var(--white); }
+
+  /* ── SECTION HEADER DARK VARIANT ── */
+  .section-header-dark h2 { color: var(--white); }
+  .section-header-dark p { color: rgba(255,255,255,0.6); }
+  .section-eyebrow-gold { color: var(--gold) !important; }
 </style>
 </head>
 <body>
@@ -764,8 +781,8 @@
   <div class="mv-pattern"></div>
   <div class="section-inner">
     <div class="section-header">
-      <span class="section-eyebrow" style="color: var(--gold);">Purpose & Direction</span>
-      <h2 style="color: var(--white);">Mission, Vision & Objectives</h2>
+      <span class="section-eyebrow section-eyebrow-gold">Purpose & Direction</span>
+      <h2 class="color-white">Mission, Vision & Objectives</h2>
       <div class="divider"></div>
     </div>
     <div class="mv-grid">
@@ -782,33 +799,33 @@
     </div>
     <div style="margin-top: 40px;">
       <div class="section-header" style="margin-bottom: 32px;">
-        <span class="section-eyebrow" style="color: var(--gold);">What We Pursue</span>
+        <span class="section-eyebrow section-eyebrow-gold">What We Pursue</span>
         <h2 style="color: var(--white); font-size: 1.8rem;">Strategic Objectives</h2>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(3,1fr); gap: 24px;">
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Spiritual & Moral Development</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Strengthening youth spiritually through mentorship, Bible-based teachings, prayer, and discipleship programs anchored in Christian values.</p>
+      <div class="objectives-grid">
+        <div class="obj-card">
+          <h4>Spiritual & Moral Development</h4>
+          <p>Strengthening youth spiritually through mentorship, Bible-based teachings, prayer, and discipleship programs anchored in Christian values.</p>
         </div>
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Youth Mentorship & Leadership</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Structured mentorship programs integrating life skills, spiritual guidance, leadership, and civic engagement through school clubs and community initiatives.</p>
+        <div class="obj-card">
+          <h4>Youth Mentorship & Leadership</h4>
+          <p>Structured mentorship programs integrating life skills, spiritual guidance, leadership, and civic engagement through school clubs and community initiatives.</p>
         </div>
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Counselling & Psychosocial Support</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Mental health awareness programs rooted in Christian compassion, trauma support, rehabilitation services, and reintegration of vulnerable youth.</p>
+        <div class="obj-card">
+          <h4>Counselling & Psychosocial Support</h4>
+          <p>Mental health awareness programs rooted in Christian compassion, trauma support, rehabilitation services, and reintegration of vulnerable youth.</p>
         </div>
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Life Skills & Economic Empowerment</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Vocational training, entrepreneurship, career guidance, and educational support grounded in Christian ethics and stewardship principles.</p>
+        <div class="obj-card">
+          <h4>Life Skills & Economic Empowerment</h4>
+          <p>Vocational training, entrepreneurship, career guidance, and educational support grounded in Christian ethics and stewardship principles.</p>
         </div>
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Child Protection & Safeguarding</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Advocating against abuse, exploitation, and harmful practices with robust safeguarding mechanisms and reporting systems built on Christian care.</p>
+        <div class="obj-card">
+          <h4>Child Protection & Safeguarding</h4>
+          <p>Advocating against abuse, exploitation, and harmful practices with robust safeguarding mechanisms and reporting systems built on Christian care.</p>
         </div>
-        <div style="background: rgba(255,255,255,0.04); border-radius: 10px; padding: 24px; border-top: 2px solid var(--gold);">
-          <h4 style="color: var(--gold-light); margin-bottom: 12px; font-size: 16px;">Access to Justice & Legal Aid</h4>
-          <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.7; font-weight: 300;">Pro bono legal assistance, restorative justice initiatives, legal literacy programs, and collaboration with justice sector stakeholders for youth rights.</p>
+        <div class="obj-card">
+          <h4>Access to Justice & Legal Aid</h4>
+          <p>Pro bono legal assistance, restorative justice initiatives, legal literacy programs, and collaboration with justice sector stakeholders for youth rights.</p>
         </div>
       </div>
     </div>
@@ -1127,7 +1144,12 @@
       <div class="team-card" onclick="openModal('claire')">
         <div class="team-avatar" id="avatar-claire">
           <div class="avatar-initials">CK</div>
-          <img class="avatar-photo" id="avatarImg-claire" src="" alt="Profile photo">
+          <img id="avatarImg-claire" class="avatar-photo" src="" alt="Profile photo of Claire N. Kituyi">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-claire').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-claire" accept="image/*" onchange="setAvatar('claire', this)">
           </div>
         <div class="team-info">
           <h4>Claire N. Kituyi</h4>
@@ -1140,7 +1162,12 @@
       <div class="team-card" onclick="openModal('beverline')">
         <div class="team-avatar" id="avatar-beverline">
           <div class="avatar-initials">BA</div>
-          <img class="avatar-photo" id="avatarImg-beverline" src="" alt="Profile photo">
+          <img id="avatarImg-beverline" class="avatar-photo" src="" alt="Profile photo of Beverline Sherryl Alubi">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-beverline').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-beverline" accept="image/*" onchange="setAvatar('beverline', this)">
           </div>
         <div class="team-info">
           <h4>Beverline Sherryl Alubi</h4>
@@ -1153,7 +1180,12 @@
       <div class="team-card" onclick="openModal('justus')">
         <div class="team-avatar" id="avatar-justus">
           <div class="avatar-initials">JM</div>
-          <img class="avatar-photo" id="avatarImg-justus" src="" alt="Profile photo">
+          <img id="avatarImg-justus" class="avatar-photo" src="" alt="Profile photo of Dr. Justus K. Musya">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-justus').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-justus" accept="image/*" onchange="setAvatar('justus', this)">
           </div>
         <div class="team-info">
           <h4>Dr. Justus K. Musya</h4>
@@ -1166,7 +1198,12 @@
       <div class="team-card" onclick="openModal('christopher')">
         <div class="team-avatar" id="avatar-christopher">
           <div class="avatar-initials">CL</div>
-          <img class="avatar-photo" id="avatarImg-christopher" src="" alt="Profile photo">
+          <img id="avatarImg-christopher" class="avatar-photo" src="" alt="Profile photo of Christopher Lutta">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-christopher').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-christopher" accept="image/*" onchange="setAvatar('christopher', this)">
           </div>
         <div class="team-info">
           <h4>Christopher Lutta</h4>
@@ -1179,7 +1216,12 @@
       <div class="team-card" onclick="openModal('mercy')">
         <div class="team-avatar" id="avatar-mercy">
           <div class="avatar-initials">MN</div>
-          <img class="avatar-photo" id="avatarImg-mercy" src="" alt="Profile photo">
+          <img id="avatarImg-mercy" class="avatar-photo" src="" alt="Profile photo of Mercy Nechesa Barasa">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-mercy').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-mercy" accept="image/*" onchange="setAvatar('mercy', this)">
           </div>
         <div class="team-info">
           <h4>Mercy Nechesa Barasa</h4>
@@ -1192,7 +1234,12 @@
       <div class="team-card" onclick="openModal('immaculate')">
         <div class="team-avatar" id="avatar-immaculate">
           <div class="avatar-initials">IK</div>
-          <img class="avatar-photo" id="avatarImg-immaculate" src="" alt="Profile photo">
+          <img id="avatarImg-immaculate" class="avatar-photo" src="" alt="Profile photo of Immaculate Nandako Kakai">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-immaculate').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-immaculate" accept="image/*" onchange="setAvatar('immaculate', this)">
           </div>
         <div class="team-info">
           <h4>Immaculate Nandako Kakai</h4>
@@ -1205,7 +1252,12 @@
       <div class="team-card" onclick="openModal('james')">
         <div class="team-avatar" id="avatar-james">
           <div class="avatar-initials">JO</div>
-          <img class="avatar-photo" id="avatarImg-james" src="" alt="Profile photo">
+          <img id="avatarImg-james" class="avatar-photo" src="" alt="Profile photo of Dr. James Joel Otieno">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-james').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-james" accept="image/*" onchange="setAvatar('james', this)">
           </div>
         <div class="team-info">
           <h4>Dr. James Joel Otieno</h4>
@@ -1218,7 +1270,12 @@
       <div class="team-card" onclick="openModal('elvis')">
         <div class="team-avatar" id="avatar-elvis">
           <div class="avatar-initials">EO</div>
-          <img class="avatar-photo" id="avatarImg-elvis" src="" alt="Profile photo">
+          <img id="avatarImg-elvis" class="avatar-photo" src="" alt="Profile photo of Elvis Omondi Owino">
+          <button class="avatar-upload-btn" onclick="document.getElementById('avatarFile-elvis').click()">
+            <span class="cam-icon">📷</span>
+            <span>Upload Photo</span>
+          </button>
+          <input type="file" class="avatar-file-input" id="avatarFile-elvis" accept="image/*" onchange="setAvatar('elvis', this)">
           </div>
         <div class="team-info">
           <h4>Elvis Omondi Owino</h4>
@@ -1236,8 +1293,8 @@
   <div class="gov-pattern"></div>
   <div class="section-inner">
     <div class="section-header">
-      <span class="section-eyebrow" style="color: var(--gold);">Structure & Accountability</span>
-      <h2 style="color: var(--white);">Governance & Legal Framework</h2>
+      <span class="section-eyebrow section-eyebrow-gold">Structure & Accountability</span>
+      <h2 class="color-white">Governance & Legal Framework</h2>
       <div class="divider"></div>
       <p style="color: rgba(255,255,255,0.6);">Guiding Light CBO operates under a formal Constitution anchored in integrity, transparency, and accountability to the communities we serve.</p>
     </div>
@@ -1579,11 +1636,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 async function handleFormSubmit(e) {
   e.preventDefault();
-  var form    = document.getElementById('contactForm');
-  var btn     = document.getElementById('formSubmitBtn');
-  var label   = document.getElementById('submitLabel');
-  var arrow   = document.getElementById('submitArrow');
-  var spinner = document.getElementById('submitSpinner');
+  const form    = document.getElementById('contactForm');
+  const btn     = document.getElementById('formSubmitBtn');
+  const label   = document.getElementById('submitLabel');
+  const arrow   = document.getElementById('submitArrow');
+  const spinner = document.getElementById('submitSpinner');
 
   // loading state
   btn.disabled = true;
@@ -1592,8 +1649,8 @@ async function handleFormSubmit(e) {
   spinner.style.display = 'inline';
 
   try {
-    var data = new FormData(form);
-    var response = await fetch('https://formspree.io/f/xbdqrvrr', {
+    const data = new FormData(form);
+    const response = await fetch('https://formspree.io/f/xbdqrvrr', {
       method: 'POST',
       body: data,
       headers: { 'Accept': 'application/json' }
@@ -1603,8 +1660,8 @@ async function handleFormSubmit(e) {
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('formSuccess').style.display = 'block';
     } else {
-      var json = await response.json();
-      var errMsg = (json && json.errors)
+      const json = await response.json();
+      const errMsg = (json && json.errors)
         ? json.errors.map(function(err){ return err.message; }).join(', ')
         : 'Something went wrong. Please try again or email us directly.';
       label.textContent = 'Try Again';
@@ -1728,27 +1785,27 @@ function addPhotos() {
 
 // ── NEWS ──────────────────────────────────────────────────────────────────
 function addNews() {
-  var headlineEl = document.getElementById('newsHeadline');
-  var catEl      = document.getElementById('newsCategory');
-  var dateEl     = document.getElementById('newsDate');
-  var contentEl  = document.getElementById('newsContent');
-  var gridEl     = document.getElementById('newsGrid');
-  var panelEl    = document.getElementById('addNewsPanel');
+  const headlineEl = document.getElementById('newsHeadline');
+  const catEl      = document.getElementById('newsCategory');
+  const dateEl     = document.getElementById('newsDate');
+  const contentEl  = document.getElementById('newsContent');
+  const gridEl     = document.getElementById('newsGrid');
+  const panelEl    = document.getElementById('addNewsPanel');
   if (!headlineEl || !catEl || !contentEl || !gridEl) { console.error('News form elements missing'); return; }
-  var headline = headlineEl.value.trim();
-  var cat      = catEl.value;
-  var dateVal  = dateEl ? dateEl.value : '';
-  var content  = contentEl.value.trim();
+  const headline = headlineEl.value.trim();
+  const cat      = catEl.value;
+  const dateVal  = dateEl ? dateEl.value : '';
+  const content  = contentEl.value.trim();
   if (!headline) { headlineEl.style.borderColor='var(--red)'; headlineEl.focus(); return; }
   headlineEl.style.borderColor = '';
   if (!content)  { contentEl.style.borderColor='var(--red)';  contentEl.focus();  return; }
   contentEl.style.borderColor = '';
-  var tagClass = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
-  var tagLabel = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
-  var displayDate = dateVal
+  const tagClass = { event:'tag-event', milestone:'tag-milestone', partnership:'tag-partnership', urgent:'tag-urgent' };
+  const tagLabel = { event:'Event', milestone:'Milestone', partnership:'Partnership', urgent:'Urgent' };
+  const displayDate = dateVal
     ? new Date(dateVal + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
     : new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  var card = document.createElement('div');
+  const card = document.createElement('div');
   card.className = 'news-card';
   card.style.animation = 'slideUp 0.35s ease';
   card.innerHTML =
@@ -1761,10 +1818,10 @@ function addNews() {
   gridEl.prepend(card);
   headlineEl.value = ''; contentEl.value = '';
   if (dateEl) dateEl.value = '';
-  var sEl = document.getElementById('newsSummaryShort'); if (sEl) sEl.value = '';
-  var btn = panelEl ? panelEl.querySelector('.add-submit') : null;
+  const sEl = document.getElementById('newsSummaryShort'); if (sEl) sEl.value = '';
+  const btn = panelEl ? panelEl.querySelector('.add-submit') : null;
   if (btn) {
-    var orig = btn.textContent;
+    const orig = btn.textContent;
     btn.textContent = '✅ Published!'; btn.disabled = true;
     setTimeout(function(){ btn.textContent=orig; btn.disabled=false; if(panelEl) panelEl.classList.remove('open'); }, 1800);
   } else { if (panelEl) panelEl.classList.remove('open'); }
@@ -1855,7 +1912,5 @@ document.querySelectorAll('.nav-links a').forEach(a => {
   });
 });
 </script>
-<script type="module" src="supabase.js"></script>
-<script type="module" src="index.js"></script>
 </body>
 </html>
